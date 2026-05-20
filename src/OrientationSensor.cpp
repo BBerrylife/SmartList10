@@ -44,7 +44,7 @@ bool OrientationSensor::filter(QAccelerometerReading *reading)
         return false;
     }
 
-    // Tăng chỉ số cooldown từ 500 lên 600 để giảm nhẹ tốc độ cuộn tổng thể
+    // Tăng chỉ số cooldown từ 500 lên 600 giảm nhẹ tốc độ cuộn tổng thể
     qreal spd = (m_scrollSpeed > 0.01) ? m_scrollSpeed : 1.0;
     int cooldown = static_cast<int>(600 / spd);
 
