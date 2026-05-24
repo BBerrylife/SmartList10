@@ -3,95 +3,88 @@ import QtQuick 1.0
 
 SceneCover {
     id: rootCover
-    
     property int viewportStart: 0
-    
-    property int maxRows: 4
-    
+
     onCreationCompleted: {
         app.coverChanged.connect(function() {
-                highlightTimer.start()
+            rebuildTimer.start()
         })
     }
-    
+
     attachedObjects: [
         ArrayDataModel {
             id: localViewModel
         },
         Timer {
-            id: highlightTimer
+            id: rebuildTimer
             interval: 10
             repeat: false
             onTriggered: {
                 var allItems = []
-                var targetModelIdx = -1
-                var rank = 0
-                
                 for (var i = 0; i < coverModel.size(); i = i + 1) {
                     var item = coverModel.data([i])
                     if (item) {
                         allItems.push({
-                                "modelIdx": i,
-                                "name": item.name,
-                                "isHeader": item.isHeader === true,
-                                "checked": item.checked === true
+                            "modelIdx": i,
+                            "name":     item.name,
+                            "isHeader": item.isHeader === true,
+                            "checked":  item.checked  === true
                         })
-                    
-                    if (item.isHeader !== true) {
+                    }
+                }
+
+                if (allItems.length === 0) {
+                    localViewModel.clear()
+                    coverList.highlightIdx    = -1
+                    rootCover.viewportStart   = 0
+                    return
+                }
+
+                var targetModelIdx = -1
+                var rank = 0
+                for (var k = 0; k < allItems.length; k = k + 1) {
+                    if (!allItems[k].isHeader) {
                         if (rank === app.coverSelectedIdx) {
-                            targetModelIdx = i
+                            targetModelIdx = k
                         }
                         rank = rank + 1
                     }
-                    }
                 }
-                
-                if (allItems.length === 0) {
-                    localViewModel.clear()
-                    coverList.highlightIdx = -1
-                    return
-                }
-                
+
+                var scrollThreshold = 2
                 var vStart = rootCover.viewportStart
-                
-                if (vStart > allItems.length - rootCover.maxRows) {
-                    vStart = allItems.length - rootCover.maxRows
+
+                if (targetModelIdx >= 0) {
+                    var posInView = targetModelIdx - vStart
+                    if (posInView > scrollThreshold) {
+                        vStart = targetModelIdx - scrollThreshold
+                    } else if (posInView < 0) {
+                        vStart = targetModelIdx
+                    }
+                    if (vStart < 0) vStart = 0
                 }
-                if (vStart < 0) {
-                    vStart = 0
-                }
-                
-                // Thuật toán kiểm tra biên để di chuyển khung nhìn ảo
-                if (targetModelIdx < vStart) {
-                    // Nếu tilt vượt quá biên trên -> Cuộn khung nhìn lên
-                    vStart = targetModelIdx
-                } else if (targetModelIdx >= vStart + rootCover.maxRows) {
-                    // Nếu tilt vượt quá biên dưới -> Cuộn khung nhìn xuống
-                    vStart = targetModelIdx - rootCover.maxRows + 1
-                }
-                
+
                 rootCover.viewportStart = vStart
-                
+
                 var visibleItems = []
-                var count = Math.min(rootCover.maxRows, allItems.length - vStart)
-                for (var j = 0; j < count; j = j + 1) {
-                    visibleItems.push(allItems[vStart + j])
+                for (var j = vStart; j < allItems.length; j = j + 1) {
+                    visibleItems.push(allItems[j])
                 }
-                
+
                 localViewModel.clear()
                 localViewModel.append(visibleItems)
-                
-                coverList.highlightIdx = targetModelIdx - vStart
+
+                coverList.highlightIdx = (targetModelIdx >= vStart) ? (targetModelIdx - vStart) : -1
             }
         }
     ]
-    
+
     content: Container {
         layout: DockLayout {}
         horizontalAlignment: HorizontalAlignment.Fill
         verticalAlignment:   VerticalAlignment.Fill
         background: app.useSmartFrame ? Color.White : Color.create("#70cbff")
-        
+
         Container {
             visible: !app.useSmartFrame
             horizontalAlignment: HorizontalAlignment.Center
@@ -104,24 +97,24 @@ SceneCover {
                 verticalAlignment:   VerticalAlignment.Center
             }
         }
-        
+
         Container {
             visible: app.useSmartFrame
             layout: StackLayout {}
             horizontalAlignment: HorizontalAlignment.Fill
             verticalAlignment:   VerticalAlignment.Fill
-            
+
             Container {
                 id: infoHeader
                 property bool ruleHeader: (app.useHeadersInLists && app.coverTotal > 8)
                 visible: app.showSmartFrameInfo || ruleHeader
-                
+
                 layout: DockLayout {}
                 horizontalAlignment: HorizontalAlignment.Fill
                 topPadding: 14; bottomPadding: 14
                 leftPadding: 20; rightPadding: 20
                 background: Color.create("#3daee9")
-                
+
                 Container {
                     visible: infoHeader.ruleHeader
                     horizontalAlignment: HorizontalAlignment.Fill
@@ -144,14 +137,13 @@ SceneCover {
                         verticalAlignment: VerticalAlignment.Center
                     }
                 }
-                
+
                 Container {
                     visible: !infoHeader.ruleHeader && app.showSmartFrameInfo
                     horizontalAlignment: HorizontalAlignment.Fill
                     verticalAlignment: VerticalAlignment.Center
                     layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
                     leftPadding: 4; rightPadding: 4
-                    
                     Label {
                         text: app.coverDone + "/" + app.coverTotal
                         textStyle.color: Color.White
@@ -165,7 +157,6 @@ SceneCover {
                         background: Color.create("#30000000")
                         layoutProperties: StackLayoutProperties { spaceQuota: 1.0 }
                         layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
-                        
                         Container {
                             background: Color.White
                             preferredHeight: 22
@@ -177,27 +168,31 @@ SceneCover {
                             background: Color.Transparent
                             preferredHeight: 22
                             layoutProperties: StackLayoutProperties {
-                                spaceQuota: ((app.coverTotal - app.coverDone) > 0) ? (app.coverTotal - app.coverDone) : 0.001
+                                spaceQuota: ((app.coverTotal - app.coverDone) > 0)
+                                            ? (app.coverTotal - app.coverDone) : 0.001
                             }
                         }
                     }
                 }
             }
-            
+
             ListView {
                 id: coverList
-                dataModel: localViewModel 
+                dataModel: localViewModel
                 horizontalAlignment: HorizontalAlignment.Fill
+                verticalAlignment:   VerticalAlignment.Fill
                 scrollIndicatorMode: ScrollIndicatorMode.None
-                bottomPadding: 150 * appItemScale
-                
+                layoutProperties: StackLayoutProperties { spaceQuota: 1.0 }
+
+                bottomPadding: 100
+
                 property int  highlightIdx: -1
                 property real appItemScale: app.itemScale > 0 ? app.itemScale : 1.0
-                
+
                 function itemType(data, indexPath) {
                     return (data && data.isHeader === true) ? "header" : "item"
                 }
-                
+
                 listItemComponents: [
                     ListItemComponent {
                         type: "header"
@@ -221,8 +216,8 @@ SceneCover {
                         Container {
                             id: itemRoot
                             horizontalAlignment: HorizontalAlignment.Fill
-                            background: (itemRoot.ListItem.indexPath[0] === itemRoot.ListItem.view.highlightIdx) ? Color.create("#cce5ff") : Color.Transparent
-                            
+                            background: (itemRoot.ListItem.indexPath[0] === itemRoot.ListItem.view.highlightIdx)
+                                        ? Color.create("#cce5ff") : Color.Transparent
                             Container {
                                 horizontalAlignment: HorizontalAlignment.Fill
                                 verticalAlignment: VerticalAlignment.Center
@@ -230,7 +225,6 @@ SceneCover {
                                 leftPadding: 20; rightPadding: 10
                                 topPadding:    10 * itemRoot.ListItem.view.appItemScale
                                 bottomPadding: 10 * itemRoot.ListItem.view.appItemScale
-                                
                                 Label {
                                     text: ListItemData.name
                                     textStyle.base: SystemDefaults.TextStyles.BodyText

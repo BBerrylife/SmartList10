@@ -36,13 +36,26 @@ simulator {
 
 config_pri_assets {
     OTHER_FILES += \
+        $$quote($$BASEDIR/assets/AboutSheet.qml) \
+        $$quote($$BASEDIR/assets/AddCatSheet.qml) \
+        $$quote($$BASEDIR/assets/AddItemSheet.qml) \
+        $$quote($$BASEDIR/assets/AddListSheet.qml) \
+        $$quote($$BASEDIR/assets/AllListsTab.qml) \
+        $$quote($$BASEDIR/assets/AppLogic.qml) \
+        $$quote($$BASEDIR/assets/AppStorage.qml) \
+        $$quote($$BASEDIR/assets/CatTabDef.qml) \
+        $$quote($$BASEDIR/assets/ItemPageDef.qml) \
+        $$quote($$BASEDIR/assets/ModelManager.qml) \
+        $$quote($$BASEDIR/assets/SettingsSheet.qml) \
+        $$quote($$BASEDIR/assets/SharePickerSheet.qml) \
         $$quote($$BASEDIR/assets/cover.qml) \
+        $$quote($$BASEDIR/assets/desktop.ini) \
         $$quote($$BASEDIR/assets/images/about.png) \
         $$quote($$BASEDIR/assets/images/berrylife.png) \
         $$quote($$BASEDIR/assets/images/category.png) \
+        $$quote($$BASEDIR/assets/images/copy.png) \
         $$quote($$BASEDIR/assets/images/delete.png) \
         $$quote($$BASEDIR/assets/images/desktop.ini) \
-        $$quote($$BASEDIR/assets/images/edit.png) \
         $$quote($$BASEDIR/assets/images/email.png) \
         $$quote($$BASEDIR/assets/images/home.png) \
         $$quote($$BASEDIR/assets/images/listedit.png) \

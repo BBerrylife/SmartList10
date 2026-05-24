@@ -1,3 +1,4 @@
+#include <bb/system/Clipboard>
 #include "applicationui.hpp"
 
 #include <bb/cascades/Application>
@@ -31,25 +32,14 @@ using namespace bb::multimedia;
 
 ApplicationUI::ApplicationUI(OrientationSensor *sensor) :
     QObject(),
-    m_pRoot(0),
-    m_pCoverQml(0),
-    m_pCurrentCover(0),
-    m_isThumbnailed(false),
-    m_coverRecreateScheduled(false),
-    m_coverDone(0),
-    m_coverTotal(0),
-    m_coverSelectedIdx(0),
-    m_volumeUpCheck(false),
-    m_showSmartFrameInfo(false),
-    m_useHeadersInLists(false),
-    m_smartFrameScrollMode(0),
-    m_mediaKeysConnected(false),
-    m_itemScale(1.0),
-    m_smartFrameScrollSpeed(1.0),
-    m_useSmartFrame(true),
-    m_volUpWatcher(0),
-    m_volDownWatcher(0),
-    m_muteWatcher(0),
+    m_pRoot(0), m_pCoverQml(0), m_pCurrentCover(0),
+    m_isThumbnailed(false), m_coverRecreateScheduled(false),
+    m_coverDone(0), m_coverTotal(0), m_coverSelectedIdx(0),
+    m_volumeUpCheck(false), m_showSmartFrameInfo(false),
+    m_useHeadersInLists(false), m_smartFrameScrollMode(0),
+    m_mediaKeysConnected(false), m_itemScale(1.0),
+    m_smartFrameScrollSpeed(1.0), m_useSmartFrame(true),
+    m_volUpWatcher(0), m_volDownWatcher(0), m_muteWatcher(0),
     m_pOrientSensor(sensor)
 {
     m_pInvokeManager = new InvokeManager(this);
@@ -62,17 +52,15 @@ ApplicationUI::ApplicationUI(OrientationSensor *sensor) :
     Q_ASSERT(res); Q_UNUSED(res);
     onSystemLanguageChanged();
 
-    QObject::connect(Application::instance(), SIGNAL(thumbnail()),
-                     this, SLOT(onThumbnailed()));
-    QObject::connect(Application::instance(), SIGNAL(fullscreen()),
-                     this, SLOT(onFullscreen()));
+    QObject::connect(Application::instance(), SIGNAL(thumbnail()), this, SLOT(onThumbnailed()));
+    QObject::connect(Application::instance(), SIGNAL(fullscreen()), this, SLOT(onFullscreen()));
 
     m_volUpWatcher   = new MediaKeyWatcher(MediaKey::VolumeUp,   this);
     m_volDownWatcher = new MediaKeyWatcher(MediaKey::VolumeDown, this);
     m_muteWatcher    = new MediaKeyWatcher(MediaKey::PlayPause,  this);
 
     if (m_pOrientSensor) {
-        QObject::connect(m_pOrientSensor, SIGNAL(tiltUp()), this, SLOT(onTiltUp()));
+        QObject::connect(m_pOrientSensor, SIGNAL(tiltUp()),   this, SLOT(onTiltUp()));
         QObject::connect(m_pOrientSensor, SIGNAL(tiltDown()), this, SLOT(onTiltDown()));
     }
 
@@ -96,17 +84,8 @@ ApplicationUI::ApplicationUI(OrientationSensor *sensor) :
 
 ApplicationUI::~ApplicationUI() {}
 
-void ApplicationUI::onTiltUp()
-{
-    if (!m_isThumbnailed) return;
-    navigateUp();
-}
-
-void ApplicationUI::onTiltDown()
-{
-    if (!m_isThumbnailed) return;
-    navigateDown();
-}
+void ApplicationUI::onTiltUp()   { if (m_isThumbnailed) navigateUp(); }
+void ApplicationUI::onTiltDown() { if (m_isThumbnailed) navigateDown(); }
 
 void ApplicationUI::setSmartFrameScrollSpeed(qreal v)
 {
@@ -114,36 +93,20 @@ void ApplicationUI::setSmartFrameScrollSpeed(qreal v)
     if (m_pOrientSensor) m_pOrientSensor->setScrollSpeed(v);
 }
 
-void ApplicationUI::navigateUp()
-{
-    if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx - 1);
-}
+void ApplicationUI::navigateUp()   { if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx - 1); }
+void ApplicationUI::navigateDown() { if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx + 1); }
+void ApplicationUI::recreateCover() {}
 
-void ApplicationUI::navigateDown()
-{
-    if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx + 1);
-}
-
-void ApplicationUI::recreateCover()
-{
-
-}
-
-void ApplicationUI::minimizeApp()
-{
-    Application::instance()->minimize();
-}
+void ApplicationUI::minimizeApp() { Application::instance()->minimize(); }
 
 void ApplicationUI::onThumbnailed()
 {
     m_isThumbnailed = true;
     m_coverRecreateScheduled = false;
-    if (m_pOrientSensor && m_smartFrameScrollMode == 0) {
+    if (m_pOrientSensor && m_smartFrameScrollMode == 0)
         m_pOrientSensor->start();
-    }
-    if (m_pRoot) {
+    if (m_pRoot)
         QMetaObject::invokeMethod(m_pRoot, "prepareCoverData", Qt::QueuedConnection);
-    }
 }
 
 void ApplicationUI::onFullscreen()
@@ -154,29 +117,20 @@ void ApplicationUI::onFullscreen()
 
 void ApplicationUI::updateCover(const QString &listName, int done, int total, const QVariantList &items)
 {
-    m_coverListName    = listName;
-    m_coverDone        = done;
-    m_coverTotal       = total;
+    m_coverListName = listName;
+    m_coverDone     = done;
+    m_coverTotal    = total;
 
     m_coverModel->clear();
-    if (!items.isEmpty()) {
-        m_coverModel->append(items);
-    }
+    if (!items.isEmpty()) m_coverModel->append(items);
 
     int itemCount = 0;
     for (int i = 0; i < m_coverModel->size(); i++) {
-        QVariantMap row = m_coverModel->value(i).toMap();
-        if (!row.value("isHeader", false).toBool()) itemCount++;
+        if (!m_coverModel->value(i).toMap().value("isHeader", false).toBool()) itemCount++;
     }
-
-    if (m_coverSelectedIdx < 0) {
-        m_coverSelectedIdx = 0;
-    }
-    if (itemCount > 0 && m_coverSelectedIdx >= itemCount) {
-        m_coverSelectedIdx = itemCount - 1;
-    } else if (itemCount == 0) {
-        m_coverSelectedIdx = 0;
-    }
+    if (m_coverSelectedIdx < 0) m_coverSelectedIdx = 0;
+    if (itemCount > 0 && m_coverSelectedIdx >= itemCount) m_coverSelectedIdx = itemCount - 1;
+    else if (itemCount == 0) m_coverSelectedIdx = 0;
 
     emit coverChanged();
 }
@@ -185,27 +139,18 @@ void ApplicationUI::setCoverSelectedIdx(int idx)
 {
     int itemCount = 0;
     for (int i = 0; i < m_coverModel->size(); i++) {
-        QVariantMap row = m_coverModel->value(i).toMap();
-        if (!row.value("isHeader", false).toBool()) itemCount++;
+        if (!m_coverModel->value(i).toMap().value("isHeader", false).toBool()) itemCount++;
     }
     if (idx < 0) idx = 0;
     if (itemCount > 0 && idx >= itemCount) idx = itemCount - 1;
-
     if (m_coverSelectedIdx != idx) {
         m_coverSelectedIdx = idx;
         emit coverChanged();
     }
 }
 
-void ApplicationUI::onVolumeUp()
-{
-    if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx - 1);
-}
-
-void ApplicationUI::onVolumeDown()
-{
-    if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx + 1);
-}
+void ApplicationUI::onVolumeUp()   { if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx - 1); }
+void ApplicationUI::onVolumeDown() { if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx + 1); }
 
 void ApplicationUI::triggerMuteAction()
 {
@@ -218,11 +163,8 @@ void ApplicationUI::setSmartFrameScrollMode(int v)
     if (m_smartFrameScrollMode == v) return;
     m_smartFrameScrollMode = v;
     if (m_pOrientSensor) {
-        if (v != 0) {
-            m_pOrientSensor->stop();
-        } else if (m_isThumbnailed) {
-            m_pOrientSensor->start();
-        }
+        if (v != 0) m_pOrientSensor->stop();
+        else if (m_isThumbnailed) m_pOrientSensor->start();
     }
     disconnectMediaKeyWatchers();
     connectMediaKeyWatchers();
@@ -232,7 +174,6 @@ void ApplicationUI::connectMediaKeyWatchers()
 {
     if (m_mediaKeysConnected) return;
     m_mediaKeysConnected = true;
-
     if (m_smartFrameScrollMode == 0) {
         QObject::connect(m_volUpWatcher,
             SIGNAL(longPress(bb::multimedia::MediaKey::Type)),
@@ -259,45 +200,32 @@ void ApplicationUI::disconnectMediaKeyWatchers()
     if (m_muteWatcher)    m_muteWatcher->disconnect(this);
 }
 
-void ApplicationUI::onMode0VolUpLong(bb::multimedia::MediaKey::Type)
-{
-    triggerMuteAction();
-}
-
-void ApplicationUI::onMode1MuteShort(bb::multimedia::MediaKey::Type)
-{
-    triggerMuteAction();
-}
-
-void ApplicationUI::onMode1VolUpShort(bb::multimedia::MediaKey::Type)
-{
-    if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx - 1);
-}
-
-void ApplicationUI::onMode1VolDownShort(bb::multimedia::MediaKey::Type)
-{
-    if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx + 1);
-}
+void ApplicationUI::onMode0VolUpLong(bb::multimedia::MediaKey::Type)  { triggerMuteAction(); }
+void ApplicationUI::onMode1MuteShort(bb::multimedia::MediaKey::Type)  { triggerMuteAction(); }
+void ApplicationUI::onMode1VolUpShort(bb::multimedia::MediaKey::Type) { if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx - 1); }
+void ApplicationUI::onMode1VolDownShort(bb::multimedia::MediaKey::Type) { if (m_isThumbnailed) setCoverSelectedIdx(m_coverSelectedIdx + 1); }
 
 bool ApplicationUI::eventFilter(QObject *obj, QEvent *event)
 {
     Q_UNUSED(obj);
-    if (m_smartFrameScrollMode != 1) return false;
-    if (!m_isThumbnailed) return false;
-
+    if (m_smartFrameScrollMode != 1 || !m_isThumbnailed) return false;
     if (event->type() == QEvent::KeyPress) {
         QKeyEvent *key = static_cast<QKeyEvent*>(event);
         int k = key->key();
-        bool isMute = (k == Qt::Key_VolumeMute          ||
-                       k == Qt::Key_MediaTogglePlayPause ||
-                       k == Qt::Key_MediaPlay            ||
-                       k == Qt::Key_MediaPause           ||
-                       k == 0x01000072                   ||
-                       k == 0x01010002                   ||
+        bool isMute = (k == Qt::Key_VolumeMute || k == Qt::Key_MediaTogglePlayPause ||
+                       k == Qt::Key_MediaPlay   || k == Qt::Key_MediaPause ||
+                       k == 0x01000072 || k == 0x01010002 ||
                        k == 173 || k == 177 || k == 179 || k == 180);
         if (isMute) { triggerMuteAction(); return true; }
     }
     return false;
+}
+
+void ApplicationUI::copyToClipboard(const QString &text)
+{
+    bb::system::Clipboard clipboard;
+    clipboard.clear();
+    clipboard.insert("text/plain", text.toUtf8());
 }
 
 void ApplicationUI::invokeEmail(const QString &to, const QString &subject)
@@ -324,6 +252,7 @@ void ApplicationUI::onQueryTargetsFinished()
 {
     InvokeQueryTargetsReply *reply = qobject_cast<InvokeQueryTargetsReply*>(sender());
     if (!reply) return;
+
     QString tmpDir = QDir::homePath() + "/tmp/icons/";
     QDir().mkpath(tmpDir);
 
@@ -333,47 +262,48 @@ void ApplicationUI::onQueryTargetsFinished()
     QVariantList bbmMain, bbmGroup, bbmChannel;
     QVariantList textList, emailList, meetingList, connList, rememberList, otherNatList, thirdList;
 
-    QList<InvokeAction> actions = reply->actions();
-    for (int a = 0; a < actions.size(); a++) {
-        QList<InvokeTarget> tgts = actions.at(a).targets();
-        for (int t = 0; t < tgts.size(); t++) {
+    foreach (const InvokeAction &action, reply->actions()) {
+        foreach (const InvokeTarget &tgt, action.targets()) {
             QVariantMap m;
-            m["label"]  = tgts.at(t).label();
-            m["target"] = tgts.at(t).name();
-            m["action"] = actions.at(a).name();
+            m["label"]  = tgt.label();
+            m["target"] = tgt.name();
+            m["action"] = action.name();
 
-            QString src = tgts.at(t).icon().toLocalFile();
+            QString src = tgt.icon().toLocalFile();
             if (!src.isEmpty() && QFile::exists(src)) {
-                QString dst = tmpDir + tgts.at(t).name().replace("/","_") + ".png";
+                QString dst = tmpDir + tgt.name().replace("/", "_") + ".png";
                 if (!QFile::exists(dst)) QFile::copy(src, dst);
                 m["icon"] = "file://" + dst;
-            } else m["icon"] = "";
+            } else {
+                m["icon"] = "";
+            }
 
             bool isNat = false;
-            QString targetName = tgts.at(t).name().toLower();
-
-            for (int p = 0; p < nativePfx.size(); p++) {
-                if (targetName.startsWith(nativePfx.at(p))) { isNat = true; break; }
+            QString name = tgt.name().toLower();
+            foreach (const QString &pfx, nativePfx) {
+                if (name.startsWith(pfx)) { isNat = true; break; }
             }
             m["isNative"] = isNat;
 
             if (isNat) {
-                if (targetName.contains("bbgroups") || (targetName.contains("bbm") && targetName.contains("group"))) {
+                if (name.contains("bbgroups") || (name.contains("bbm") && name.contains("group")))
                     bbmGroup.append(m);
-                    qDebug() << "BBM_GROUP:" << targetName;
-                } else if (targetName.contains("channel") || targetName.contains("channels")) {
+                else if (name.contains("channel") || name.contains("channels"))
                     bbmChannel.append(m);
-                    qDebug() << "BBM_CHANNEL:" << targetName;
-                } else if (targetName.contains("bbm")) {
+                else if (name.contains("bbm"))
                     bbmMain.append(m);
-                    qDebug() << "BBM_MAIN:" << targetName;
-                }
-                else if (targetName.contains("text") || targetName.contains("sms") || targetName.contains("mms")) { textList.append(m); }
-                else if (targetName.contains("email")) { emailList.append(m); }
-                else if (targetName.contains("meeting") || targetName.contains("calendar")) { meetingList.append(m); }
-                else if (targetName.contains("bluetooth") || targetName.contains("nfc")) { connList.append(m); }
-                else if (targetName.contains("remember")) { rememberList.append(m); }
-                else { otherNatList.append(m); }
+                else if (name.contains("text") || name.contains("sms") || name.contains("mms"))
+                    textList.append(m);
+                else if (name.contains("email"))
+                    emailList.append(m);
+                else if (name.contains("meeting") || name.contains("calendar"))
+                    meetingList.append(m);
+                else if (name.contains("bluetooth") || name.contains("nfc"))
+                    connList.append(m);
+                else if (name.contains("remember"))
+                    rememberList.append(m);
+                else
+                    otherNatList.append(m);
             } else {
                 thirdList.append(m);
             }
@@ -382,20 +312,13 @@ void ApplicationUI::onQueryTargetsFinished()
     reply->deleteLater();
 
     QVariantList result;
-    QList<QVariantList*> listsToAppend;
-    listsToAppend << &bbmMain << &bbmGroup << &bbmChannel << &textList << &emailList
-                  << &meetingList << &connList << &rememberList << &otherNatList << &thirdList;
+    QList<QVariantList*> ordered;
+    ordered << &bbmMain << &bbmGroup << &bbmChannel << &textList << &emailList
+            << &meetingList << &connList << &rememberList << &otherNatList << &thirdList;
+    foreach (QVariantList *lst, ordered)
+        foreach (const QVariant &v, *lst)
+            result.append(v);
 
-    for (int i = 0; i < listsToAppend.size(); i++) {
-        for(int j = 0; j < listsToAppend[i]->size(); j++) {
-            result.append(listsToAppend[i]->at(j));
-        }
-    }
-
-    for (int r = 0; r < result.size(); r++) {
-        QVariantMap rm = result.at(r).toMap();
-        qDebug() << "SHARE_ORDER[" << r << "]" << rm.value("target").toString() << rm.value("label").toString();
-    }
     emit shareTargetsReady(result);
 }
 
@@ -421,8 +344,7 @@ void ApplicationUI::shareText(const QString &text)
 void ApplicationUI::onSystemLanguageChanged()
 {
     QCoreApplication::instance()->removeTranslator(m_pTranslator);
-    QString locale_string = QLocale().name();
-    QString file_name = QString("SmartList10_%1").arg(locale_string);
-    if (m_pTranslator->load(file_name, "app/native/qm"))
+    QString locale = QLocale().name();
+    if (m_pTranslator->load(QString("SmartList10_%1").arg(locale), "app/native/qm"))
         QCoreApplication::instance()->installTranslator(m_pTranslator);
 }

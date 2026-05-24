@@ -39,12 +39,10 @@ bool OrientationSensor::filter(QAccelerometerReading *reading)
     qreal y = reading->y();
     qreal z = reading->z();
 
-    // Ngay trong quá trình bạn đang đặt máy xuống bàn, tránh hiện tượng trôi 1-2 items.
     if (qAbs(z) > 6.0) {
         return false;
     }
 
-    // Tăng chỉ số cooldown từ 500 lên 600 giảm nhẹ tốc độ cuộn tổng thể
     qreal spd = (m_scrollSpeed > 0.01) ? m_scrollSpeed : 1.0;
     int cooldown = static_cast<int>(600 / spd);
 
