@@ -3,6 +3,7 @@
 
 #include <bb/cascades/Application>
 #include <bb/cascades/ThemeSupport>
+#include <bbndk.h>
 
 #include <QLocale>
 #include <QTranslator>
@@ -20,7 +21,9 @@ Q_DECL_EXPORT int main(int argc, char **argv)
 {
     Application app(argc, argv);
 
+#if BBNDK_VERSION_AT_LEAST(10,3,0)
     Application::instance()->themeSupport()->setVisualStyle(VisualStyle::Bright);
+#endif
 
     {
         QString dbPath;
@@ -76,7 +79,9 @@ Q_DECL_EXPORT int main(int argc, char **argv)
                     if (q.exec() && q.next()) {
                         QString val = q.value(0).toString().trimmed();
                         if (val == "1") {
+#if BBNDK_VERSION_AT_LEAST(10,3,0)
                             Application::instance()->themeSupport()->setVisualStyle(VisualStyle::Dark);
+#endif
                         }
                     }
                     db.close();

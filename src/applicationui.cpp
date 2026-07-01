@@ -1,4 +1,5 @@
 #include <bb/system/Clipboard>
+#include <bb/ApplicationInfo>
 #include "applicationui.hpp"
 
 #include <bb/cascades/Application>
@@ -98,6 +99,10 @@ void ApplicationUI::navigateDown() { if (m_isThumbnailed) setCoverSelectedIdx(m_
 void ApplicationUI::recreateCover() {}
 
 void ApplicationUI::minimizeApp() { Application::instance()->minimize(); }
+
+// Reads the version string directly from bar-descriptor.xml at runtime via bb::ApplicationInfo.
+// To bump the app version, only bar-descriptor.xml needs to be changed — no QML edits needed.
+QString ApplicationUI::appVersion() { return bb::ApplicationInfo().version(); }
 
 void ApplicationUI::onThumbnailed()
 {
@@ -226,6 +231,50 @@ void ApplicationUI::copyToClipboard(const QString &text)
     bb::system::Clipboard clipboard;
     clipboard.clear();
     clipboard.insert("text/plain", text.toUtf8());
+}
+
+// Reads a UTF-8 text file from the given absolute path. Returns an empty
+// string on failure (e.g. file picked by the user is unreadable).
+QString ApplicationUI::readTextFile(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return QString();
+    QTextStream in(&file);
+    in.setCodec("UTF-8");
+    QString content = in.readAll();
+    file.close();
+    return content;
+}
+
+// Writes UTF-8 text to the given absolute path, creating parent directories
+// as needed. Used by Export to write a backup JSON file.
+bool ApplicationUI::writeTextFile(const QString &path, const QString &content)
+{
+    QFileInfo fi(path);
+    QDir().mkpath(fi.absolutePath());
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) return false;
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+    out << content;
+    file.close();
+    return true;
+}
+
+// Shared Documents/smartlist10 backup folder, visible in the BB10 file
+// manager and reachable from a connected PC, used as the Export destination.
+QString ApplicationUI::downloadsPath()
+{
+    return QDir::homePath() + "/shared/documents/smartlist10/";
+}
+
+bool ApplicationUI::themeSwitchSupported() const
+{
+#if BBNDK_VERSION_AT_LEAST(10,3,0)
+    return true;
+#else
+    return false;
+#endif
 }
 
 void ApplicationUI::invokeEmail(const QString &to, const QString &subject)

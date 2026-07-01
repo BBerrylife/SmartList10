@@ -44,14 +44,33 @@ config_pri_assets {
         $$quote($$BASEDIR/assets/AppLogic.qml) \
         $$quote($$BASEDIR/assets/AppStorage.qml) \
         $$quote($$BASEDIR/assets/CatTabDef.qml) \
+        $$quote($$BASEDIR/assets/ChangelogPage.qml) \
         $$quote($$BASEDIR/assets/ItemPageDef.qml) \
         $$quote($$BASEDIR/assets/ModelManager.qml) \
         $$quote($$BASEDIR/assets/SettingsSheet.qml) \
         $$quote($$BASEDIR/assets/SharePickerSheet.qml) \
         $$quote($$BASEDIR/assets/cover.qml) \
         $$quote($$BASEDIR/assets/desktop.ini) \
+        $$quote($$BASEDIR/assets/images/AboutSheet/barcode.png) \
+        $$quote($$BASEDIR/assets/images/AboutSheet/berrylife.png) \
+        $$quote($$BASEDIR/assets/images/AboutSheet/ic_facebook.png) \
+        $$quote($$BASEDIR/assets/images/AboutSheet/ic_sb_network.png) \
+        $$quote($$BASEDIR/assets/images/AboutSheet/ic_scan_barcode.png) \
+        $$quote($$BASEDIR/assets/images/ActiveFrame/Activeframe_sl10_Small.png) \
+        $$quote($$BASEDIR/assets/images/ActiveFrame/activeframe_sl10_big.png) \
+        $$quote($$BASEDIR/assets/images/ActiveFrame/activeframe_sl10_medium.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-2.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-3.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-4.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-5.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-6.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-7.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-8.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1-9.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/1.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/2.png) \
+        $$quote($$BASEDIR/assets/images/SettingsSheet/3.png) \
         $$quote($$BASEDIR/assets/images/about.png) \
-        $$quote($$BASEDIR/assets/images/berrylife.png) \
         $$quote($$BASEDIR/assets/images/category.png) \
         $$quote($$BASEDIR/assets/images/copy.png) \
         $$quote($$BASEDIR/assets/images/delete.png) \
@@ -80,8 +99,6 @@ config_pri_source_group1 {
         $$quote($$BASEDIR/src/fileio.h)
 }
 
-INCLUDEPATH += $$quote($$BASEDIR/src)
-
 CONFIG += precompile_header
 
 PRECOMPILED_HEADER = $$quote($$BASEDIR/precompiled.h)
@@ -98,7 +115,16 @@ lupdate_inclusion {
         $$quote($$BASEDIR/../assets/*.qs) \
         $$quote($$BASEDIR/../assets/images/*.qml) \
         $$quote($$BASEDIR/../assets/images/*.js) \
-        $$quote($$BASEDIR/../assets/images/*.qs)
+        $$quote($$BASEDIR/../assets/images/*.qs) \
+        $$quote($$BASEDIR/../assets/images/AboutSheet/*.qml) \
+        $$quote($$BASEDIR/../assets/images/AboutSheet/*.js) \
+        $$quote($$BASEDIR/../assets/images/AboutSheet/*.qs) \
+        $$quote($$BASEDIR/../assets/images/ActiveFrame/*.qml) \
+        $$quote($$BASEDIR/../assets/images/ActiveFrame/*.js) \
+        $$quote($$BASEDIR/../assets/images/ActiveFrame/*.qs) \
+        $$quote($$BASEDIR/../assets/images/SettingsSheet/*.qml) \
+        $$quote($$BASEDIR/../assets/images/SettingsSheet/*.js) \
+        $$quote($$BASEDIR/../assets/images/SettingsSheet/*.qs)
 
     HEADERS += \
         $$quote($$BASEDIR/../src/*.h) \

@@ -26,7 +26,7 @@ TabbedPane {
                 onTriggered: { aboutSheet.open() }
             },
             ActionItem {
-                title: "Email"
+                title: "Feedback"
                 imageSource: "asset:///images/email.png"
                 onTriggered: { app.invokeEmail("Berrylife2025@gmail.com", "SmartList10 Feedback") }
             }
@@ -113,17 +113,6 @@ TabbedPane {
             }
             onItemModelRebuildNeeded: {
                 models.rebuildItemModel(listId, logic.lists, logic.findListIdx)
-            }
-            onItemToggled: {
-                // Update checked state in-place to preserve scroll position
-                for (var i = 0; i < models.itemModel.size(); i = i + 1) {
-                    var it = models.itemModel.value(i)
-                    if (it && it.id === itemId) {
-                        it.checked = isChecked
-                        models.itemModel.updateItem([i], it)
-                        break
-                    }
-                }
             }
             onCoverUpdateNeeded:          { logic.buildCoverItems(listId) }
             onDeleteToastRequested:       { deleteToast.body = message; deleteToast.show() }

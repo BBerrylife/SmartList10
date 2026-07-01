@@ -9,6 +9,7 @@
 #include <bb/system/InvokeManager>
 #include <bb/multimedia/MediaKeyWatcher>
 #include <bb/multimedia/MediaKey>
+#include <bbndk.h>
 #include "OrientationSensor.hpp"
 
 namespace bb { namespace cascades { class LocaleHandler; class AbstractPane; class SceneCover; } }
@@ -29,6 +30,7 @@ class ApplicationUI : public QObject
     Q_PROPERTY(qreal   itemScale           READ itemScale           WRITE setItemScale           NOTIFY coverSettingsChanged)
     Q_PROPERTY(qreal   smartFrameScrollSpeed READ smartFrameScrollSpeed WRITE setSmartFrameScrollSpeed NOTIFY coverSettingsChanged)
     Q_PROPERTY(bool    useSmartFrame       READ useSmartFrame       WRITE setUseSmartFrame       NOTIFY coverSettingsChanged)
+    Q_PROPERTY(bool    themeSwitchSupported READ themeSwitchSupported CONSTANT)
 
 public:
     explicit ApplicationUI(OrientationSensor *sensor = 0);
@@ -61,9 +63,16 @@ public:
     bool  useSmartFrame()      const { return m_useSmartFrame; }
     void  setUseSmartFrame(bool v)   { m_useSmartFrame = v; emit coverSettingsChanged(); }
 
+    // True only when built against BB10 NDK 10.3+, where Cascades'
+    // ThemeSupport::setVisualStyle()/VisualStyle actually exist. On 10.2.1
+    // builds the Dark Theme toggle must be hidden in QML since it has no
+    // effect (see main.cpp / applicationui.cpp guards).
+    bool  themeSwitchSupported() const;
+
 public slots:
     void invokeEmail(const QString &to, const QString &subject);
     void minimizeApp();
+    Q_INVOKABLE QString appVersion();
     void updateCover(const QString &listName, int done, int total, const QVariantList &items);
     void setCoverSelectedIdx(int idx);
     void navigateUp();
@@ -73,6 +82,9 @@ public slots:
     void invokeShareTarget(const QString &target, const QString &action, const QString &text);
     void triggerMuteAction();
     void copyToClipboard(const QString &text);
+    Q_INVOKABLE QString readTextFile(const QString &path);
+    Q_INVOKABLE bool    writeTextFile(const QString &path, const QString &content);
+    Q_INVOKABLE QString downloadsPath();
 
 signals:
     void coverChanged();

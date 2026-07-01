@@ -32,12 +32,13 @@ QtObject {
     signal coverUpdateNeeded(int listId)
     signal listModelRebuildNeeded(int catId)
     signal itemModelRebuildNeeded(int listId)
-    signal itemToggled(int listId, int itemId, bool isChecked)
     signal deleteToastRequested(string message)
     signal confirmDeleteListRequested()
     signal confirmDeleteCatRequested()
     signal shareDialogRequested(string text)
     signal switchToAllTabRequested()
+    signal exportFinished(bool ok, string message)
+    signal importFinished(bool ok, string message)
 
     property int    _pendingDeleteCatId:  -1
     property int    _pendingDeleteListId: -1
@@ -339,7 +340,7 @@ QtObject {
         lists = tt
         lastListId   = listId
         lastListName = lists[li].name
-        itemToggled(listId, itemId, isChecked)
+        itemModelRebuildNeeded(listId)
         listModelRebuildNeeded(activeCatId)
         buildCoverItems(listId)
         _save()
@@ -376,5 +377,167 @@ QtObject {
         listModelRebuildNeeded(activeCatId)
         if (listId === lastListId) buildCoverItems(listId)
         _save()
+    }
+
+    // ---------- Export ----------
+    // Writes the full app data (categories + lists + items) as a native
+    // SmartList10 backup JSON to the shared Downloads folder, so it shows up
+    // in the BB10 file manager and can be copied to a PC or re-imported later.
+    function exportToFile() {
+        var snap = dataSnapshot()
+        var json = JSON.stringify(snap, null, 2)
+        var d = new Date()
+        function pad(n) { return (n < 10 ? "0" : "") + n }
+        var ts = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" +
+                 pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds())
+        var fileName = "SmartList10-backup-" + ts + ".json"
+        var path = appHandle.downloadsPath() + fileName
+        var ok = appHandle.writeTextFile(path, json)
+        if (ok) {
+            exportFinished(true, "Saved to Documents/smartlist10/" + fileName)
+        } else {
+            exportFinished(false, "Could not write the export file. Check storage permissions.")
+        }
+    }
+
+    // ---------- Import ----------
+    function _ensureCategory(name) {
+        for (var i = 0; i < categories.length; i = i + 1) {
+            if (categories[i].name === name) return categories[i].id
+        }
+        var tc = categories
+        tc.push({ "id": nextCatId, "name": name })
+        categories = tc
+        nextCatId = nextCatId + 1
+        return nextCatId - 1
+    }
+
+    function _addImportedList(name, catId, items) {
+        var n = (name && name.trim() !== "") ? name.trim() : "Untitled list"
+        var newList = { "id": nextListId, "name": n, "categoryId": catId, "items": [] }
+        nextListId = nextListId + 1
+        for (var i = 0; i < items.length; i = i + 1) {
+            newList.items.push({ "id": nextItemId, "name": items[i].name, "note": "", "checked": !!items[i].checked })
+            nextItemId = nextItemId + 1
+        }
+        var tl = lists
+        tl.push(newList)
+        lists = tl
+        return newList.items.length
+    }
+
+    // One Google Keep note -> one list. Trashed notes are skipped. Supports
+    // both checklist notes (listContent) and plain text notes (textContent).
+    function _importKeepNote(note, catId) {
+        if (!note || note.isTrashed === true) return 0
+        var items = []
+        if (note.listContent !== undefined) {
+            var lc = note.listContent || []
+            for (var i = 0; i < lc.length; i = i + 1) {
+                var t = (lc[i].text || "").trim()
+                if (t) items.push({ "name": t, "checked": !!lc[i].isChecked })
+            }
+        } else if (note.textContent !== undefined && note.textContent !== "") {
+            var parts = note.textContent.split(/\n+/)
+            for (var j = 0; j < parts.length; j = j + 1) {
+                var s = parts[j].trim()
+                if (s) items.push({ "name": s, "checked": false })
+            }
+        }
+        if (items.length === 0) return 0
+        _addImportedList(note.title || "Untitled note", catId, items)
+        return items.length
+    }
+
+    // Detects and imports: native SmartList10 backups, Microsoft To Do
+    // backups (array of lists with "tasks"), and Google Keep Takeout notes
+    // (single note object, or an array of note objects).
+    function importJsonText(jsonText) {
+        var parsed
+        try { parsed = JSON.parse(jsonText) } catch (e) {
+            importFinished(false, "That file is not valid JSON.")
+            return
+        }
+
+        var importedLists = 0
+        var importedItems = 0
+
+        if (Array.isArray(parsed)) {
+            if (parsed.length > 0 && parsed[0].tasks !== undefined) {
+                // Microsoft To Do backup
+                var msCatId = _ensureCategory("Microsoft To Do")
+                for (var i = 0; i < parsed.length; i = i + 1) {
+                    var l = parsed[i]
+                    var tasks = l.tasks || []
+                    var items = []
+                    for (var j = 0; j < tasks.length; j = j + 1) {
+                        var title = (tasks[j].title || "").trim()
+                        if (title) items.push({ "name": title, "checked": tasks[j].status === "completed" })
+                    }
+                    if (items.length > 0) {
+                        importedItems += _addImportedList(l.displayName, msCatId, items)
+                        importedLists = importedLists + 1
+                    }
+                }
+            } else {
+                // Array of Google Keep notes
+                var gkCatId = _ensureCategory("Google Keep")
+                for (var k = 0; k < parsed.length; k = k + 1) {
+                    var added = _importKeepNote(parsed[k], gkCatId)
+                    if (added > 0) { importedLists = importedLists + 1; importedItems = importedItems + added }
+                }
+            }
+        } else if (parsed && typeof parsed === "object") {
+            if (parsed.categories !== undefined && parsed.lists !== undefined) {
+                // Native SmartList10 backup -> merge into current data
+                var catMap = {}
+                var srcCats = parsed.categories || []
+                for (var c = 0; c < srcCats.length; c = c + 1) {
+                    catMap[srcCats[c].id] = _ensureCategory(srcCats[c].name)
+                }
+                var srcLists = parsed.lists || []
+                for (var m = 0; m < srcLists.length; m = m + 1) {
+                    var sl = srcLists[m]
+                    var srcItems = sl.items || []
+                    var items2 = []
+                    for (var n = 0; n < srcItems.length; n = n + 1) {
+                        items2.push({ "name": srcItems[n].name, "checked": !!srcItems[n].checked })
+                    }
+                    var targetCat = (catMap[sl.categoryId] !== undefined) ? catMap[sl.categoryId] : -1
+                    importedItems += _addImportedList(sl.name, targetCat, items2)
+                    importedLists = importedLists + 1
+                }
+            } else if (parsed.listContent !== undefined || parsed.textContent !== undefined) {
+                // Single Google Keep note
+                var gkCatId2 = _ensureCategory("Google Keep")
+                var added2 = _importKeepNote(parsed, gkCatId2)
+                if (added2 > 0) { importedLists = 1; importedItems = added2 }
+            } else {
+                importFinished(false, "Unrecognized file format.")
+                return
+            }
+        } else {
+            importFinished(false, "Unrecognized file format.")
+            return
+        }
+
+        if (importedLists === 0) {
+            importFinished(false, "No lists or items found to import.")
+            return
+        }
+
+        categoriesChanged()
+        listModelRebuildNeeded(activeCatId)
+        _save()
+        importFinished(true, importedLists + " list(s), " + importedItems + " item(s) imported.")
+    }
+
+    function importFromFile(path) {
+        var content = appHandle.readTextFile(path)
+        if (content === "") {
+            importFinished(false, "Could not read the selected file.")
+            return
+        }
+        importJsonText(content)
     }
 }

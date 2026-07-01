@@ -1,4 +1,5 @@
 import bb.cascades 1.4
+import bb.cascades.pickers 1.0
 import bb.system 1.0
 import QtQuick 1.0
 
@@ -24,6 +25,38 @@ Sheet {
                 id: volKeyWarningToast
                 body: "WARNING: Using 'Volume key navigation' will disable the system volume controls while the SmartFrame is active."
                 position: SystemUiPosition.MiddleCenter
+            },
+            SystemToast {
+                id: howToToast
+                body: "Export saves a backup .json file to /accounts/1000/shared/documents/smartlist10. Import reads a SmartList10 backup, a Microsoft To Do export, or a Google Keep note .json file. Full guide coming soon."
+                position: SystemUiPosition.MiddleCenter
+            },
+            SystemToast {
+                id: backupResultToast
+                body: ""
+                position: SystemUiPosition.MiddleCenter
+            },
+            FilePicker {
+                id: importPicker
+                title: "Select a .json file to import"
+                type: FileType.Other
+                filter: [ "*.json" ]
+                mode: FilePickerMode.Picker
+                directories: [ app.downloadsPath(), "/accounts/1000/shared/misc/" ]
+                onFileSelected: {
+                    logicRef.importFromFile(selectedFiles[0])
+                }
+            },
+            Connections {
+                target: logicRef
+                onExportFinished: {
+                    backupResultToast.body = message
+                    backupResultToast.show()
+                }
+                onImportFinished: {
+                    backupResultToast.body = message
+                    backupResultToast.show()
+                }
             }
         ]
 
@@ -135,30 +168,61 @@ Sheet {
 
                 Divider { topMargin: 30; bottomMargin: 20 }
 
-                Label { text: "Appearance"; textStyle.base: SystemDefaults.TextStyles.TitleText }
-                Container {
-                    layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
-                    topMargin: 20
-                    Label {
-                        text: "Dark Theme"
-                        layoutProperties: StackLayoutProperties { spaceQuota: 1 }
-                        verticalAlignment: VerticalAlignment.Center; multiline: true
-                    }
-                    ToggleButton {
-                        checked: logicRef.darkTheme
-                        onCheckedChanged: { logicRef.darkTheme = checked }
-                    }
-                }
+                Label { text: "Backup"; textStyle.base: SystemDefaults.TextStyles.TitleText }
                 Label {
-                    text: "Theme change requires app restart to take effect."
+                    text: "Export your data, or import lists from a SmartList10 backup, Microsoft To Do, or Google Keep. Backups are saved to Documents/smartlist10."
                     multiline: true; textStyle.color: Color.Gray; topMargin: 10
                 }
+
                 Button {
-                    text: "Restart App to Apply Theme"
+                    text: "Export"
                     horizontalAlignment: HorizontalAlignment.Fill; topMargin: 16
                     onClicked: {
                         logicRef.storage.saveAll(logicRef.dataSnapshot())
-                        app.minimizeApp()
+                        logicRef.exportToFile()
+                    }
+                }
+                Button {
+                    text: "Import"
+                    horizontalAlignment: HorizontalAlignment.Fill; topMargin: 10
+                    onClicked: { importPicker.open() }
+                }
+                Button {
+                    text: "How to Export / Import"
+                    horizontalAlignment: HorizontalAlignment.Fill; topMargin: 10
+                    onClicked: { howToToast.show() }
+                }
+
+                Container {
+                    visible: app.themeSwitchSupported
+
+                    Divider { topMargin: 30; bottomMargin: 20 }
+
+                    Label { text: "Appearance"; textStyle.base: SystemDefaults.TextStyles.TitleText }
+                    Container {
+                        layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
+                        topMargin: 20
+                        Label {
+                            text: "Dark Theme"
+                            layoutProperties: StackLayoutProperties { spaceQuota: 1 }
+                            verticalAlignment: VerticalAlignment.Center; multiline: true
+                        }
+                        ToggleButton {
+                            checked: logicRef.darkTheme
+                            onCheckedChanged: { logicRef.darkTheme = checked }
+                        }
+                    }
+                    Label {
+                        text: "Theme change requires app restart to take effect."
+                        multiline: true; textStyle.color: Color.Gray; topMargin: 10
+                    }
+                    Button {
+                        text: "Restart App to Apply Theme"
+                        horizontalAlignment: HorizontalAlignment.Fill; topMargin: 16
+                        onClicked: {
+                            logicRef.storage.saveAll(logicRef.dataSnapshot())
+                            app.minimizeApp()
+                        }
                     }
                 }
             }
