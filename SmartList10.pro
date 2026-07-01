@@ -10,6 +10,6 @@ MOBILITY += sensors
 
 include(config.pri)
 
-LIBS += -lbbdata -lbbsystem -lbb
+LIBS += -lbbdata -lbbsystem -lbb -lbbdevice
 
 LIBS += -lbbmultimedia

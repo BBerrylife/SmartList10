@@ -16,6 +16,9 @@
 #include <bb/system/InvokeTarget>
 #include <bb/multimedia/MediaKeyWatcher>
 #include <bb/multimedia/MediaKey>
+#include <bb/device/DisplayInfo>
+#include <bb/cascades/ThemeSupport>
+#include <bbndk.h>
 
 #include <QEvent>
 #include <QtGui/QKeyEvent>
@@ -63,6 +66,29 @@ ApplicationUI::ApplicationUI(OrientationSensor *sensor) :
     if (m_pOrientSensor) {
         QObject::connect(m_pOrientSensor, SIGNAL(tiltUp()),   this, SLOT(onTiltUp()));
         QObject::connect(m_pOrientSensor, SIGNAL(tiltDown()), this, SLOT(onTiltDown()));
+    }
+
+    // Pick the Active Frame background image once, based on device screen
+    // resolution — same idea as Zalo10's ActiveFrameCover.cpp: normalize to
+    // portrait (short side = w, long side = h), then bucket into big / medium /
+    // small. SmartList10 ships all three tiers, unlike Zalo10 which only uses
+    // big/medium, so the small bucket is included here too.
+    {
+        bb::device::DisplayInfo display;
+        QSize px = display.pixelSize();
+        int w = px.width(), h = px.height();
+        if (w > h) { int t = w; w = h; h = t; }
+
+        QString imgPath;
+        if (w >= 1440 || h >= 1280)
+            imgPath = "asset:///images/ActiveFrame/activeframe_sl10_big.png";
+        else if (w >= 720)
+            imgPath = "asset:///images/ActiveFrame/activeframe_sl10_medium.png";
+        else
+            imgPath = "asset:///images/ActiveFrame/Activeframe_sl10_Small.png";
+
+        m_activeFrameImage = imgPath;
+        qDebug() << "[ActiveFrame] screen" << w << "x" << h << "-> img:" << imgPath;
     }
 
     QmlDocument *qml = QmlDocument::create("asset:///main.qml").parent(this);
@@ -274,6 +300,16 @@ bool ApplicationUI::themeSwitchSupported() const
     return true;
 #else
     return false;
+#endif
+}
+
+void ApplicationUI::setDarkTheme(bool dark)
+{
+#if BBNDK_VERSION_AT_LEAST(10,3,0)
+    Application::instance()->themeSupport()->setVisualStyle(
+        dark ? VisualStyle::Dark : VisualStyle::Bright);
+#else
+    Q_UNUSED(dark);
 #endif
 }
 

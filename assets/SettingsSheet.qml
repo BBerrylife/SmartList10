@@ -71,20 +71,6 @@ Sheet {
                     layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
                     topMargin: 20
                     Label {
-                        text: "Use headers in lists when these are bigger than 8"
-                        layoutProperties: StackLayoutProperties { spaceQuota: 1 }
-                        verticalAlignment: VerticalAlignment.Center; multiline: true
-                    }
-                    ToggleButton {
-                        checked: logicRef.useHeadersInLists
-                        onCheckedChanged: { logicRef.useHeadersInLists = checked }
-                    }
-                }
-
-                Container {
-                    layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
-                    topMargin: 10
-                    Label {
                         text: "Use SmartFrame when minimized"
                         layoutProperties: StackLayoutProperties { spaceQuota: 1 }
                         verticalAlignment: VerticalAlignment.Center; multiline: true
@@ -98,6 +84,24 @@ Sheet {
                 Container {
                     layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
                     topMargin: 10
+                    enabled: logicRef.useSmartFrame
+                    opacity: logicRef.useSmartFrame ? 1.0 : 0.4
+                    Label {
+                        text: "Use headers in lists when these are bigger than 8"
+                        layoutProperties: StackLayoutProperties { spaceQuota: 1 }
+                        verticalAlignment: VerticalAlignment.Center; multiline: true
+                    }
+                    ToggleButton {
+                        checked: logicRef.useHeadersInLists
+                        onCheckedChanged: { logicRef.useHeadersInLists = checked }
+                    }
+                }
+
+                Container {
+                    layout: StackLayout { orientation: LayoutOrientation.LeftToRight }
+                    topMargin: 10
+                    enabled: logicRef.useSmartFrame
+                    opacity: logicRef.useSmartFrame ? 1.0 : 0.4
                     Label {
                         text: "Show SmartFrame info when app is minimized"
                         layoutProperties: StackLayoutProperties { spaceQuota: 1 }
@@ -209,20 +213,16 @@ Sheet {
                         }
                         ToggleButton {
                             checked: logicRef.darkTheme
-                            onCheckedChanged: { logicRef.darkTheme = checked }
+                            onCheckedChanged: {
+                                logicRef.darkTheme = checked
+                                app.setDarkTheme(checked)
+                                logicRef.storage.saveAll(logicRef.dataSnapshot())
+                            }
                         }
                     }
                     Label {
-                        text: "Theme change requires app restart to take effect."
+                        text: "Enabling dark mode at night reduces eye strain and saves battery on OLED displays."
                         multiline: true; textStyle.color: Color.Gray; topMargin: 10
-                    }
-                    Button {
-                        text: "Restart App to Apply Theme"
-                        horizontalAlignment: HorizontalAlignment.Fill; topMargin: 16
-                        onClicked: {
-                            logicRef.storage.saveAll(logicRef.dataSnapshot())
-                            app.minimizeApp()
-                        }
                     }
                 }
             }

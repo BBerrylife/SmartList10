@@ -85,17 +85,15 @@ SceneCover {
         verticalAlignment:   VerticalAlignment.Fill
         background: app.useSmartFrame ? Color.White : Color.create("#70cbff")
 
-        Container {
+        // Active Frame: static screenshot-style cover, sized for this device's
+        // screen resolution (app.activeFrameImage is picked in C++ once at
+        // startup — see ApplicationUI's DisplayInfo-based bucketing).
+        ImageView {
             visible: !app.useSmartFrame
-            horizontalAlignment: HorizontalAlignment.Center
-            verticalAlignment:   VerticalAlignment.Center
-            ImageView {
-                imageSource: "asset:///images/berrylife.png"
-                scalingMethod: ScalingMethod.AspectFit
-                preferredWidth: 200; preferredHeight: 200
-                horizontalAlignment: HorizontalAlignment.Center
-                verticalAlignment:   VerticalAlignment.Center
-            }
+            imageSource: app.activeFrameImage
+            scalingMethod: ScalingMethod.AspectFill
+            horizontalAlignment: HorizontalAlignment.Fill
+            verticalAlignment:   VerticalAlignment.Fill
         }
 
         Container {

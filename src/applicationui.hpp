@@ -31,6 +31,11 @@ class ApplicationUI : public QObject
     Q_PROPERTY(qreal   smartFrameScrollSpeed READ smartFrameScrollSpeed WRITE setSmartFrameScrollSpeed NOTIFY coverSettingsChanged)
     Q_PROPERTY(bool    useSmartFrame       READ useSmartFrame       WRITE setUseSmartFrame       NOTIFY coverSettingsChanged)
     Q_PROPERTY(bool    themeSwitchSupported READ themeSwitchSupported CONSTANT)
+    // Full asset:// path to the Active Frame background image, picked once at
+    // startup based on bb::device::DisplayInfo (same idea as Zalo10's
+    // ActiveFrameCover.cpp: normalize to portrait short/long side, then bucket
+    // into big / medium / small). Consumed by cover.qml's non-SmartFrame branch.
+    Q_PROPERTY(QString activeFrameImage   READ activeFrameImage    CONSTANT)
 
 public:
     explicit ApplicationUI(OrientationSensor *sensor = 0);
@@ -63,6 +68,8 @@ public:
     bool  useSmartFrame()      const { return m_useSmartFrame; }
     void  setUseSmartFrame(bool v)   { m_useSmartFrame = v; emit coverSettingsChanged(); }
 
+    QString activeFrameImage() const { return m_activeFrameImage; }
+
     // True only when built against BB10 NDK 10.3+, where Cascades'
     // ThemeSupport::setVisualStyle()/VisualStyle actually exist. On 10.2.1
     // builds the Dark Theme toggle must be hidden in QML since it has no
@@ -73,6 +80,12 @@ public slots:
     void invokeEmail(const QString &to, const QString &subject);
     void minimizeApp();
     Q_INVOKABLE QString appVersion();
+    // Applies the Dark/Bright VisualStyle to the already-running app immediately
+    // (no restart needed), mirroring Zalo10's ApplicationUI::setDarkTheme(). Only
+    // takes effect when themeSwitchSupported() is true (BBNDK 10.3+); a no-op
+    // otherwise. Persistence for the *next* cold start still happens via the
+    // 'darkTheme' value main.cpp reads from SQLite before the UI is created.
+    Q_INVOKABLE void setDarkTheme(bool dark);
     void updateCover(const QString &listName, int done, int total, const QVariantList &items);
     void setCoverSelectedIdx(int idx);
     void navigateUp();
@@ -134,6 +147,7 @@ private:
     qreal   m_itemScale;
     qreal   m_smartFrameScrollSpeed;
     bool    m_useSmartFrame;
+    QString m_activeFrameImage;
 
     bb::multimedia::MediaKeyWatcher* m_volUpWatcher;
     bb::multimedia::MediaKeyWatcher* m_volDownWatcher;
